@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  @font-face {
+    font-family: "Univers LT Std";
+    src: url("../fonts/UniversLTStd-Bold.otf") format("opentype");
+    src: url("../fonts/UniversLTStd.otf") format("opentype");
+  }
+
+  html {
+    font-family: "Univers LT Std", system-ui, sans-serif;
+    /* font-size: 10px; */
+    @apply text-default-black;
+  }
+
+  .h2,
+  h2 {
+    @apply text-4xl leading-10 font-bold mb-4;
+  }
+
+  .h4,
+  h4 {
+    @apply text-l font-bold leading-10 mb-4;
+  }
+
+  ul {
+    @apply ps-6 list-disc;
+  }
+
+  .body-text p {
+    @apply text-base mb-5 leading-8 break-words;
+  }
+
+  .body-text .text-align-center {
+    @apply text-center;
+  }
+
+  table {
+    @apply mb-4;
+  }
+
+  table td {
+    @apply border border-gray p-4;
+  }
+
+  .body-text table p {
+    @apply mb-0;
+  }
+
+  .btn-primary {
+    @apply bg-color-secondary hover:bg-primary rounded-2xl hover:text-white py-3 px-4 ease-in-out;
+  }
+
+  .btn-secondary {
+    @apply bg-red hover:bg-red-100 ease-in-out;
+  }
+
+  h1,
+  .h1 {
+    @apply text-xxl lg:text-4xl font-semibold;
+  }
+
+  select {
+    @apply bg-white py-2 pe-4 ps-2 border border-shadow-dark-gray;
+  }
+}
+
+@layer components {
+  .icon-video {
+    background-color: #363e44;
+    background-image: url("/assets/images/video-icon.png");
+    width: 2rem;
+    height: 2rem;
+    display: block;
+    background-size: 2rem;
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    top: 0.75rem;
+  }
+  .icon-video {
+    background-color: #363e44;
+    background-image: url("/assets/images/video-icon.png");
+    width: 2rem;
+    height: 2rem;
+    display: block;
+    background-size: 2rem;
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    top: 0.75rem;
+  }
+
+  .stories-strength-support .card {
+    box-shadow: 0 0.4rem 1.5rem 0 rgba(0, 0, 0, 0.07);
+    margin-bottom: 28px;
+  }
+
+  .banner-slider .title h1 {
+    font-size: 48px;
+    line-height: 48px;
+  }
+
+  .banner-slider .title h2 {
+    font-size: 36px;
+  }
+
+  .search-results {
+    box-shadow:
+      0 0.4rem 0.6rem -0.2rem rgba(16, 24, 40, 0.05),
+      0 1.2rem 1.6rem -0.4rem rgba(16, 24, 40, 0.1);
+    width: 84.5%;
+  }
+
+  .search-wrapper {
+    @apply relative;
+  }
+  .search-wrapper::before {
+    @apply absolute;
+    background-color: #ffe5f0;
+    content: "";
+    width: 100%;
+    height: 50px;
+    z-index: -1;
+    left: 0;
+    top: 0;
+  }
+
+  .search-wrapper select {
+    background-image: url("/assets/images/dropdown-arrow.svg");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+  }
+}
