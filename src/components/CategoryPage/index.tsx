@@ -1,118 +1,110 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import SimpleCard from '../Cards/SimpleCard';
-import { absoluteUrl } from '@/src/lib/utils';
-import Image from 'next/image';
-import Card from '../Cards/Card';
-import './taxonomy.scss';
-import { useLocale } from 'next-intl';
-import { getCategoriesData } from '@/src/lib/apis';
-import { Breadcrumbs } from '../Breadcrumb';
+import React, { useState, useEffect } from "react"
+import SimpleCard from "../Cards/SimpleCard"
+import {
+  getCountryCode,
+  getLangCode,
+  getLocaleValue,
+} from "@/src/lib/utils"
+import Image from "next/image"
+import "./taxonomy.scss"
+import { useLocale } from "next-intl"
+import { getCategoriesData } from "@/src/lib/apis"
+import { Breadcrumbs } from "../Breadcrumb"
+import { CategoryPageShimmer } from "../Shimmer"
+import FeaturedStories from "./FeaturedStories"
 
-const CategoryPage = ({ tid, breadcrumb }: { tid: number, breadcrumb: any }) => {
-  const locale = useLocale();
-  const [data, setData] = useState<any>(null);
-  const [featuredData, setFeaturedData] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+const CategoryPage = ({
+  tid,
+  breadcrumb,
+}: {
+  tid: number
+  breadcrumb: any
+}) => {
+  const locale = useLocale()
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const countryCode = getCountryCode()
+  const langCode = getLangCode()
+  const localeValue = getLocaleValue()
 
   useEffect(() => {
-    async function getCategoryData() {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+
       try {
-        setLoading(true);
-        setError(null);
-        const catData = await getCategoriesData(locale, tid);
-        setData(catData);
-      } catch (error: any) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    }
+        const [catData] = await Promise.allSettled([
+          getCategoriesData(locale, tid),
+        ])
 
-    async function getFeaturedStories() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_DRUPAL_BASE_URL}/${locale}/api/v1/featured-stories/${tid}?langcode=${locale}`);
-
-        if (!res.ok) {
-          throw new Error('Failed to fetch data');
+        if (catData.status === "fulfilled") {
+          setData(catData.value)
         }
-
-        const data = await res.json();
-        setFeaturedData(data);
       } catch (error: any) {
-        setError(error.message);
+        setError(error.message)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    getCategoryData();
-    getFeaturedStories();
-  }, [locale, tid]);
+    fetchData()
+  }, [locale, tid, countryCode, langCode, localeValue])
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <CategoryPageShimmer />
+    )
   }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  const { cat_name, cat_icon, cat_alt, cat_color } = data?.category;
 
   return (
-    <div className='category-page'>
+    <div className="category-page">
       <Breadcrumbs items={breadcrumb} />
 
-      <div className='category-top pb-10' style={{ backgroundColor: '#' + cat_color }}>
-        <div className='cat-header container flex justify-center items-center py-10'>
-          <Image alt={cat_alt} src={absoluteUrl('/' + cat_icon)} width={48} height={48} />
-          <h1>{cat_name}</h1>
-        </div>
-        <div className="simple-card__wrapper container flex flex-wrap gap-6">
-          {
-            Object.values(data.content).map((item: any, index: any) => {
-              const transformedItem = {
-                title: item.subcat_name,
-                url: item.url,
-                image: absoluteUrl(item.sub_category_thumbnail),
-                alt: item.sub_category_alt || item.subcat_name,
-              };
-              return <SimpleCard
-                key={index}
-                data={transformedItem}
-                classes="md:flex-[0_0_50%] md:max-w-[calc(50%-1rem)] mb-6 lg:mb-0 lg:flex-[0_0_25%] lg:max-w-[calc(25%-1.5rem)]"
+      {data && (
+        <>
+          <div
+            className="category-top pb-10"
+            style={{ backgroundColor: "#" + data?.category?.cat_color }}
+          >
+            <div className="cat-header container flex justify-center items-center py-10">
+              <Image
+                alt={data?.category?.cat_alt}
+                loading="lazy"
+                src={ data?.category?.cat_icon}
+                width={48}
+                height={48}
+                style={{ objectFit: "contain" }}
               />
-            })
-          }
-        </div>
-      </div>
-      <div className='featured-stories mb-10'>
-        <h2 className='text-center pt-20 pb-10 '> Featured Stories</h2>
-        <div className='stories container flex flex-wrap'>
-        {
-          featuredData && featuredData.map((item:any, index:number) => {
-            const transformedItem = {
-              node: {
-                title: item.title,
-                read_time: parseInt(item.read_time, 10),
-                image_uri: process.env.NEXT_PUBLIC_DRUPAL_BASE_URL + '/' + item.uri,
-                type: item.type,
-                url: item.url,
-              }
-            };
-            return <Card key={index} item={transformedItem} />
-          })
-        }
-        </div>
-      </div>
-    </div>
-  );
-};
+              <h1>{data?.category?.cat_name}</h1>
+            </div>
 
-export default CategoryPage;
+            <div className="simple-card__wrapper container flex justify-center lg:justify-normal flex-wrap gap-6">
+              {Object.values(data.content).map((item: any, index: any) => {
+                const transformedItem = {
+                  title: item.subcat_name,
+                  url: item.url,
+                  image: item.sub_category_thumbnail,
+                  alt: item.sub_category_alt || item.subcat_name,
+                }
+                return (
+                  <SimpleCard
+                    key={index}
+                    data={transformedItem}
+                    classes="md:flex-[0_0_50%] md:max-w-[calc(50%-1rem)] mb-6 lg:mb-0 lg:flex-[0_0_25%] lg:max-w-[calc(25%-1.5rem)]"
+                  />
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      <FeaturedStories tid={tid} />
+    </div>
+  )
+}
+
+export default CategoryPage

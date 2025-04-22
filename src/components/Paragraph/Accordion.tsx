@@ -1,34 +1,50 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
+import { useTranslations } from "@/src/contexts/TranslationsContext"
+import { useLocale } from "next-intl"
+import { useState, useEffect } from "react"
+
 interface AccordionProps {
-  field_question: string;
+  field_question: {
+    value: string
+  }[]
   field_answer: {
-    value: string;
-  };
+    value: string
+  }[]
 }
 
-const Accordion: React.FC<AccordionProps> = ({ field_question: title, field_answer: description }: AccordionProps) => {
-  let maxWordCount = 60;
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [hasMounted, setHasMounted] = useState(false);
+const Accordion: React.FC<AccordionProps> = ({
+  field_question,
+  field_answer,
+}) => {
+  const maxWordCount = 60
+  const [isExpanded, setIsExpanded] = useState<boolean>(false)
+  const [hasMounted, setHasMounted] = useState(false)
+  const locale = useLocale()
+  const { translations } = useTranslations()
 
-  const descriptionWords = description.value.split(" ");
-  const isLongDescription = descriptionWords.length > maxWordCount;
+  // Safely handle potentially undefined values
+  const title = field_question?.[0]?.value || ""
+  const description = field_answer?.[0]?.value || ""
 
-  const truncatedDescription =
-    descriptionWords.slice(0, maxWordCount).join(" ") + "...";
+  // Split description into words safely
+  const descriptionWords = description ? description.split(" ") : []
+  const isLongDescription = descriptionWords.length > maxWordCount
+
+  const truncatedDescription = isLongDescription
+    ? descriptionWords.slice(0, maxWordCount).join(" ") + "..."
+    : description
 
   const toggleDescription = () => {
-    setIsExpanded(!isExpanded);
-  };
+    setIsExpanded(!isExpanded)
+  }
 
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
+    setHasMounted(true)
+  }, [])
 
   if (!hasMounted) {
-    return null;
+    return null
   }
 
   return (
@@ -38,17 +54,11 @@ const Accordion: React.FC<AccordionProps> = ({ field_question: title, field_answ
       </div>
       <div className="accordion-body p-4">
         <p className="">
-          {isLongDescription && !isExpanded
-            ? (
-              <span
-                dangerouslySetInnerHTML={{ __html: truncatedDescription }}
-              />
-            )
-            : (
-              <span
-                dangerouslySetInnerHTML={{ __html: description.value }}
-              />
-            )}
+          {isLongDescription && !isExpanded ? (
+            <span dangerouslySetInnerHTML={{ __html: truncatedDescription }} />
+          ) : (
+            <span dangerouslySetInnerHTML={{ __html: description }} />
+          )}
         </p>
         {isLongDescription && (
           <div className="text-center">
@@ -56,13 +66,15 @@ const Accordion: React.FC<AccordionProps> = ({ field_question: title, field_answ
               onClick={toggleDescription}
               className="mt-6 btn-secondary text-white px-4 py-2 rounded-lg"
             >
-              {isExpanded ? "Read Less" : "Read More"}
+              {isExpanded
+                ? translations?.[locale]?.read_less || "Read Less"
+                : translations?.[locale]?.read_more || "Read More"}
             </button>
           </div>
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Accordion;
+export default Accordion

@@ -4,7 +4,7 @@
 .layout {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.5rem;
   margin-bottom: 2.5rem;
 
@@ -25,6 +25,31 @@
     @media screen and (min-width: $lg) {
       max-width: calc(33.33% - 1rem);
       flex: 0 0 33.33%;
+    }
+  }
+}
+
+.external-video {
+  >div {
+    height: 100% !important;
+    width: 100% !important;
+  }
+
+  @media screen and (min-width: $tablet) {
+    iframe {
+      height: 500px !important;
+    }
+  }
+
+  @media screen and (min-width: $lg) {
+    iframe {
+      height: 670px !important;
+    }
+  }
+
+  @media screen and (max-width: $tablet) {
+    iframe {
+      height: 250px !important;
     }
   }
 }

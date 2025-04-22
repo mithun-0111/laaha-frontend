@@ -18,7 +18,7 @@ const config: Config = {
         sm: "100%",
         md: "100%",
         lg: "1024px",
-        xl: "1232px",
+        xl: "1248px",
       },
     },
     fontFamily: {
@@ -59,7 +59,14 @@ const config: Config = {
         'gray-200': '#e9eaf0',
         'light-pink': '#fff5f8',
         'light-gray': '#5a6872',
-        'gray-100': '#f8f9f9'
+        'gray-100': '#f8f9f9',
+        'gray-300': '#e9ebed',
+        'gray-400': '#f0f2f5',
+        'gray-500': '#c2c8cc',
+        'gray-600': '#f9fafb',
+        'blue': '#4856df',
+        'gray-700': '#e5e7fa',
+        'orange': '#fff3d6'
       },
       maxWidth: {
         '1/2': '50%',

@@ -59,7 +59,7 @@
   input[type="checkbox"]:checked+label::after {
     content: "";
     position: absolute;
-    left: 7px;
+    inset-inline-start: 7px;
     top: 7px;
     width: 8px;
     height: 5px;
@@ -76,4 +76,13 @@
 
 .resource-search svg path {
   fill: $color-primary;
+}
+
+.content-resources .content-cards {
+  @media screen and (min-width: $medium) {
+    img {
+      min-height: 7.5rem;
+      object-fit: cover;
+    }
+  }
 }

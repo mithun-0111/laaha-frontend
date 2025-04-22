@@ -1,14 +1,22 @@
-import { absoluteUrl } from "@/src/lib/utils";
+import { absoluteUrl } from "@/src/lib/utils"
 
-const ExternalVideo = (data:any) => {  
-  
-    return (
-      <>
-        {
-          data && <video className="mb-8" src={absoluteUrl(data?.field_video_file?.uri?.url)} controls autoPlay />
-        }
-      </>
-    )
-  }
-  
-  export default ExternalVideo
+const Video = ({ data }: any) => {
+  const videoUrl =
+    data?.field_video_file?.uri?.url || data?.field_media_video_file?.uri?.url
+
+  return (
+    <>
+      {videoUrl && (
+        <video
+          className="mb-8 w-full"
+          src={absoluteUrl(videoUrl)}
+          controls
+          autoPlay
+          muted
+        />
+      )}
+    </>
+  )
+}
+
+export default Video

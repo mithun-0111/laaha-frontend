@@ -1,46 +1,66 @@
-import CategoryPage from "../CategoryPage";
-import SubCategoryPage from "../SubcategoryPage";
+"use client"
 
-const TaxonomyPage = ({ node }: any) => {
-  let catName = node.field_category_short_name;
-  let catIcon = node?.field_icon?.image_style_uri?.thumbnail;
-  let catUrl = node?.path?.alias;
-  const subCatName = node.field_category_short_name;
-  const subCatIcon = node.field_sub_category_thumbnail?.image_style_uri?.thumbnail;
-  let breadcrumb = [];
+import dynamic from "next/dynamic"
+import { useEffect, useState } from "react"
+import { useLocale } from "next-intl"
+import { getBreadcrumbData } from "@/src/lib/apis"
 
-  breadcrumb = [
-    {
-      title: catName,
-      icon: catIcon,
-    },
-  ];
+const CategoryPage = dynamic(() => import("../CategoryPage"))
 
-  if (node.field_sub_category) {
-    catName = node?.parent['0']?.field_category_short_name
-    catIcon = node?.parent['0']?.field_icon?.image_style_uri?.thumbnail
-    catUrl = node?.parent['0']?.path?.alias
+const TaxonomyPage = ({ node, loading }: any) => {
+  const locale = useLocale()
+  const [breadcrumb, setBreadcrumb] = useState<any[]>([])
+  const [isFetchingBreadcrumb, setIsFetchingBreadcrumb] = useState(false)
 
-    breadcrumb = [
-      {
-        title: catName,
-        url: catUrl,
-        icon: catIcon,
-      },
-      {
-        title: subCatName,
-        icon: subCatIcon,
-      },
-    ];
+  useEffect(() => {
+    // Set initial breadcrumb from node props if available
+    if (node?.field_category_short_name) {
+      setBreadcrumb([
+        {
+          title: node.field_category_short_name,
+          icon: node.field_icon?.image_style_uri?.thumbnail,
+        },
+      ])
+    }
+  }, [node?.field_category_short_name, node?.field_icon?.image_style_uri?.thumbnail])
 
-    return <SubCategoryPage tid={node.drupal_internal__tid} breadcrumb={breadcrumb} />;
+  useEffect(() => {
+    const fetchBreadcrumbData = async () => {
+      if (!node?.entity?.id) return
+      
+      try {
+        setIsFetchingBreadcrumb(true)
+        const data = await getBreadcrumbData(node.entity.id, locale)
+        
+        // Only update if we got valid data
+        if (data?.name) {
+          setBreadcrumb([
+            {
+              title: data.name,
+              icon: data.icon,
+            },
+          ])
+        }
+      } catch (error) {
+        console.error("Failed to fetch breadcrumb:", error)
+        // Keep existing breadcrumb if fetch fails
+      } finally {
+        setIsFetchingBreadcrumb(false)
+      }
+    }
+
+    fetchBreadcrumbData()
+  }, [node?.entity?.id, locale])
+
+  if (!node) {
+    return <div>No category data available</div>
   }
 
   return (
-    <div>
-      <CategoryPage tid={node.drupal_internal__tid} breadcrumb={breadcrumb} />
+    <div className="category-page">
+      <CategoryPage tid={node.entity.id} breadcrumb={breadcrumb} />
     </div>
-  );
-};
+  )
+}
 
-export default TaxonomyPage;
+export default TaxonomyPage

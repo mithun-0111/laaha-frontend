@@ -1,183 +1,419 @@
-// import { headers } from 'next/headers';
+"use client"
+
 export const runtime = "edge"
 
-import { Metadata } from "next"
-// import Card from '@/src/components/Cards/Card';
-import HomepageLearningPathSlider from "@/src/components/Slider/HomepageLearningPathSlider"
-// import { ExploreSpecialCards } from '@/src/components/Cards/ExploreSpecialCards';
+import { useEffect, useState } from "react"
+import { useLocale } from "next-intl"
+import dynamic from "next/dynamic"
 
-// import HomepageSpecialTopicsSlider from '@/src/components/Slider/HomepageSpecialTopicsSlider';
-// import Image from 'next/image';
-import LahaHelpCard from "@/src/components/Cards/LahaHelpCard"
-import HomePageBannerSlider from "@/src/components/Slider/HomepageBannerSlider"
-import HomepageSearch from "@/src/components/Search/HomepageSearch"
-import { drupal } from "@/src/lib/drupal"
-import { getParams } from "@/src/lib/getparams"
-import { getLocale } from "next-intl/server"
-import ContentMadeForYou from "./components/content-made-for-you"
-import StoriesOfStrength from "./components/stories-of-strength"
-import { laila } from "@/src/lib/utils"
-import ExploreSpecialTopics from "./components/explore-special-topics"
-import FindServices from "./components/find-services"
-import HowLaahaCanHelpYou from "./components/how-laaha-can-help-you"
+import { getCountryCode, getLangCode, getLocaleValue } from "@/src/lib/utils"
+import { HomeDynamic } from "@/src/lib/apis"
+import { BannerShimmer } from "@/src/components/Shimmer"
 
-export const metadata: Metadata = {
-  title: "Laaha Homepage",
-  description:
-    "Laaha is a safe space for women and girls to discuss health, safety, violence, and relationships.",
+const HomePageBannerSlider = dynamic(
+  () => import("@/src/components/Slider/HomepageBannerSlider"),
+  {
+    loading: () => <BannerShimmer />,
+  }
+)
+
+// Dynamically import all components
+const HomepageLearningPathSlider = dynamic(
+  () => import("@/src/components/Slider/HomepageLearningPathSlider")
+)
+const HowLaahaCanHelpYou = dynamic(
+  () => import("./components/how-laaha-can-help-you"),
+  {
+    loading: () => <HowCanLaahaHelpYouShimmer />,
+  }
+)
+const StoriesOfStrength = dynamic(
+  () => import("./components/stories-of-strength"),
+  {
+    loading: () => <StoriesShimmer />,
+  }
+)
+const ExploreSpecialTopics = dynamic(
+  () => import("./components/explore-special-topics")
+)
+const ContentMadeForYou = dynamic(
+  () => import("./components/content-made-for-you"),
+  {
+    loading: () => <ContentMadeForYouShimmer />,
+  }
+)
+const FindServices = dynamic(() => import("./components/find-services"), {
+  loading: () => <FindServicesShimmer />,
+})
+
+const HomepageSearch = dynamic(
+  () => import("@/src/components/Search/HomepageSearch")
+)
+
+const ContentMadeForYouShimmer = dynamic(() =>
+  import("@/src/components/Shimmer").then((mod) => mod.ContentMadeForYouShimmer)
+)
+
+const FindServicesShimmer = dynamic(() =>
+  import("@/src/components/Shimmer").then((mod) => mod.FindServicesShimmer)
+)
+
+const HowCanLaahaHelpYouShimmer = dynamic(() =>
+  import("@/src/components/Shimmer").then(
+    (mod) => mod.HowCanLaahaHelpYouShimmer
+  )
+)
+const StoriesShimmer = dynamic(() =>
+  import("@/src/components/Shimmer").then((mod) => mod.StoriesShimmer)
+)
+
+interface ContentMadeForYouProps {
+  title: string
+  data: any[]
 }
 
-export default async function Home() {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_DRUPAL_BASE_URL}/en/api/v1/home_dynamic`
-  )
-  let jsonRes = await response.json()
-
-  let homepageBlocksToShow = [
-    "field_banner",
-    "field_need_help",
-    "field_how_laaha_can_help_you",
-    "field_new_modules_hub",
-    "field_stories",
-  ]
-
-  let contentMadeForYouTitle = jsonRes?.data["resource-block"]["block_title"]
-  let categoryWiseData = jsonRes?.data["resource-block"]["category"]
-  let contentMadeForYouData = []
-
-  for (let [k, v] of Object.entries(categoryWiseData) as [
-    string,
-    { name: string; nodes: any },
-  ][]) {
-    let vals = Object.values(v.nodes)
-    let structuredContent = {
-      category: v.name,
-      data: vals[(Math.random() * vals.length) | 0],
-    }
-    contentMadeForYouData.push(structuredContent)
-  }
-
-  let locale = await getLocale()
-
-  const layoutNodes: Object = await drupal.getResourceByPath(`/${locale}`, {
-    params: getParams("homepage").getQueryObject(),
+export default function Home() {
+  const locale = useLocale()
+  const [contenForYou, setContenForYou] = useState<ContentMadeForYouProps>({
+    title: "",
+    data: [],
   })
+  const [homepageBannerData, setHomepageBannerData] = useState<any>([])
+  const [findServicesData, setFindservicesData] = useState<any>([])
+  const [learningData, setLearningData] = useState<any>([])
+  const [learningTitle, setLearningTitle] = useState<any>([])
+  const [howLahaCanHelpDataStructured, setHowLahaCanHelpDataStructured] =
+    useState<any>([])
+  const [exploreSpecialDataStructured, setExploreSpecialDataStructured] =
+    useState<any>([])
+  const [storiesOfStrengthDataStructured, setStoriesOfStrengthDataStructured] =
+    useState<any>([])
 
-  let orderOfNodes = []
-  for (let [nodeKey, nodeValue] of Object.entries(layoutNodes)) {
-    if (homepageBlocksToShow.includes(nodeKey)) {
-      orderOfNodes.push(nodeKey)
+  // Separate loading states for each component
+  const [isBannerLoading, setIsBannerLoading] = useState<boolean>(true)
+  const [isFindServicesLoading, setIsFindServicesLoading] =
+    useState<boolean>(true)
+  const [isContentMadeForYouLoading, setIsContentMadeForYouLoading] =
+    useState<boolean>(true)
+  const [isExploreSpecialLoading, setIsExploreSpecialLoading] =
+    useState<boolean>(true)
+  const [isHowLaahaCanHelpLoading, setIsHowLaahaCanHelpLoading] =
+    useState<boolean>(true)
+  const [isStoriesOfStrengthLoading, setIsStoriesOfStrengthLoading] =
+    useState<boolean>(true)
+
+  const countryCode = getCountryCode()
+  const langCode = getLangCode()
+  const localeValue = getLocaleValue()
+
+  // Generate a unique cache key based on locale, country code, and data type
+  const generateCacheKey = (key: string) => {
+    return `homepage-${locale}-${countryCode}-${key}`
+  }
+
+  // Cache helper functions
+  const getFromCache = (key: string) => {
+    const cachedData = localStorage.getItem(key)
+    if (!cachedData) return null
+    
+    try {
+      const { data, timestamp } = JSON.parse(cachedData)
+      // Cache is valid for 5 minutes (300,000 milliseconds)
+      if (Date.now() - timestamp < 300000) {
+        return data
+      }
+      return null
+    } catch (e) {
+      return null
     }
   }
 
-  orderOfNodes.splice(1, 0, "find_services")
-  orderOfNodes.splice(2, 0, "field_need_help")
-  orderOfNodes = Array.from(new Set(orderOfNodes))
-
-  let howLahaCanHelpData =
-    (layoutNodes as any)?.field_how_laaha_can_help_you?.field_cards ?? []
-  let exploreSpecialData = (layoutNodes as any)?.field_new_modules_hub ?? []
-  let storiesOfStrengthData = (layoutNodes as any)?.field_stories ?? []
-
-  console.log('exploreSpecialData :: ',exploreSpecialData)
-
-  let howLahaCanHelpDataStructured = []
-  for (let data of howLahaCanHelpData) {
-    howLahaCanHelpDataStructured.push({
-      title: data?.field_label,
-      description: data?.field_card_description,
-      image_uri: "",
-    })
+  const saveToCache = (key: string, data: any) => {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        data,
+        timestamp: Date.now()
+      })
+    )
   }
 
-  let exploreSpecialDataStructured = []
-  for (let data of exploreSpecialData) {
-    exploreSpecialDataStructured.push({
-      title: data?.field_title,
-      description: data?.field_card_description,
-      image_uri: data?.field_image_uri,
-    })
+  const clearLocaleCaches = () => {
+    const keysToRemove = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith(`homepage-${locale}`)) {
+        keysToRemove.push(key)
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key))
   }
 
-  console.log({exploreSpecialDataStructured})
+  const handleContentMadeForYou = async () => {
+    const contentCacheKey = generateCacheKey("content-made-for-you")
+    const learningCacheKey = generateCacheKey("learning-path-data")
 
-  let storiesOfStrengthDataStructured = []
-  for (let data of storiesOfStrengthData.field_stories_images ?? []) {
-    storiesOfStrengthDataStructured.push({
-      description: String(data.field_description.processed),
-      by: String(data.field_label),
-    })
+    // Check cache first
+    const cachedContent = getFromCache(contentCacheKey)
+    const cachedLearning = getFromCache(learningCacheKey)
+
+    if (cachedContent && cachedLearning) {
+      setContenForYou(cachedContent)
+      setLearningData(cachedLearning.data)
+      setLearningTitle(cachedLearning.title)
+      setIsContentMadeForYouLoading(false)
+      return
+    }
+
+    setIsContentMadeForYouLoading(true)
+    try {
+      const jsonRes = await HomeDynamic(locale)
+
+      // Process content made for you data
+      const contentMadeForYouTitle = jsonRes?.data["resource-block"]["block_title"]
+      const categoryWiseData = jsonRes?.data["resource-block"]["category"]
+      const contentMadeForYouData = []
+
+      // Process learning path data
+      const learningPathData = jsonRes?.data["categories-block"]["category"]
+      const learningPathTitle = jsonRes?.data["categories-block"]["block_title"]
+
+      // Structure the "Content Made For You" data
+      for (let [k, v] of Object.entries(categoryWiseData) as [
+        string,
+        { name: string; nodes: any },
+      ][]) {
+        const vals = Object.values(v.nodes)
+        const structuredContent = {
+          category: v.name,
+          data: vals[(Math.random() * vals.length) | 0],
+        }
+        contentMadeForYouData.push(structuredContent)
+      }
+
+      // Prepare data objects
+      const contentData = {
+        title: contentMadeForYouTitle,
+        data: contentMadeForYouData,
+      }
+
+      const learningData = {
+        data: learningPathData,
+        title: learningPathTitle,
+      }
+
+      // Update state
+      setContenForYou(contentData)
+      setLearningData(learningPathData)
+      setLearningTitle(learningPathTitle)
+
+      // Save to cache
+      saveToCache(contentCacheKey, contentData)
+      saveToCache(learningCacheKey, learningData)
+    } catch (error) {
+      console.error("Error fetching content data:", error)
+    } finally {
+      setIsContentMadeForYouLoading(false)
+    }
   }
 
-  let homepageBlockComponentMapping = {
-    field_banner: {
-      component: HomePageBannerSlider,
-      props: {},
-    },
-    find_services: {
-      component: FindServices,
-      props: {},
-    },
-    field_stories: {
-      component: () => {
-        return <StoriesOfStrength stories={storiesOfStrengthDataStructured} />
-      },
-      props: {},
-    },
-    field_need_help: {
-      component: HomepageSearch,
-      props: {},
-    },
+  const handleFetchData = async () => {
+    const cacheKey = generateCacheKey("static-data")
+    const cachedData = getFromCache(cacheKey)
 
-    field_new_modules_hub: {
-      component: () => (
-        <ExploreSpecialTopics
-          exploreSpecialDataStructured={exploreSpecialDataStructured}
-        />
-      ),
-      props: {},
-    },
-    field_how_laaha_can_help_you: {
-      component: () => (
-        <HowLaahaCanHelpYou
-          howLahaCanHelpDataStructured={howLahaCanHelpDataStructured}
-        />
-      ),
-      props: {},
-    },
+    if (cachedData) {
+      setExploreSpecialDataStructured(cachedData.exploreSpecialDataStructured)
+      setHomepageBannerData(cachedData.homepageBannerData)
+      setHowLahaCanHelpDataStructured(cachedData.howLahaCanHelpDataStructured)
+      setStoriesOfStrengthDataStructured(cachedData.storiesOfStrengthDataStructured)
+      setFindservicesData(cachedData.findServicesData)
+      
+      setIsBannerLoading(false)
+      setIsExploreSpecialLoading(false)
+      setIsFindServicesLoading(false)
+      setIsHowLaahaCanHelpLoading(false)
+      setIsStoriesOfStrengthLoading(false)
+      return
+    }
+
+    // Set all loading states to true
+    setIsBannerLoading(true)
+    setIsExploreSpecialLoading(true)
+    setIsFindServicesLoading(true)
+    setIsHowLaahaCanHelpLoading(true)
+    setIsStoriesOfStrengthLoading(true)
+
+    try {
+      const nodeData = await fetch(
+        `${process.env.NEXT_PUBLIC_DRUPAL_BASE_URL}/${locale}/api/v1/home_static`,
+        {
+          headers: {
+            "country-code": countryCode || "US",
+            "lang-code": langCode || "en",
+            locale: localeValue || "en",
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      const jsonNodeData = await nodeData.json()
+
+      const data = {
+        exploreSpecialDataStructured: curateExploreSpecialData(jsonNodeData),
+        findServicesData: jsonNodeData.need_help_data,
+        homepageBannerData: curateHomepageBanner(jsonNodeData),
+        howLahaCanHelpDataStructured: curateHowLahaCanHelpYou(jsonNodeData),
+        storiesOfStrengthDataStructured: curateStoriesOfStrengthData(jsonNodeData),
+      }
+
+      // Update state
+      setFindservicesData(data.findServicesData)
+      setHowLahaCanHelpDataStructured(data.howLahaCanHelpDataStructured)
+      setStoriesOfStrengthDataStructured(data.storiesOfStrengthDataStructured)
+      setExploreSpecialDataStructured(data.exploreSpecialDataStructured)
+      setHomepageBannerData(data.homepageBannerData)
+
+      // Save to cache
+      saveToCache(cacheKey, data)
+    } catch (error) {
+      console.error("Error fetching static data:", error)
+    } finally {
+      setIsBannerLoading(false)
+      setIsExploreSpecialLoading(false)
+      setIsFindServicesLoading(false)
+      setIsHowLaahaCanHelpLoading(false)
+      setIsStoriesOfStrengthLoading(false)
+    }
   }
+
+  // Structure the homepage banner data
+  const curateHomepageBanner = (nodeData: any) => {
+    let fieldBannerData = nodeData.banner_field_data
+
+    let tempBannerData = []
+    for (let data of fieldBannerData) {
+      tempBannerData.push({
+        title: data.title,
+        description: data.description,
+        image_uri: data.banner_image,
+        bg_image_uri: data.banner_background_image,
+        cta_uri: data?.cta?.link ?? "",
+        cta_title: data?.cta?.link_text ?? "",
+      })
+    }
+    return tempBannerData
+  }
+
+  // Structure "How Laaha Can Help You" data
+  const curateHowLahaCanHelpYou = (layoutNodes: any) => {
+    let howLahaCanHelpData =
+      (layoutNodes as any)?.how_laaha_can_help_you?.[0]?.field_cards ?? []
+    let tempHowLahaCanHelpDataStructured = []
+    for (let data of howLahaCanHelpData) {
+      tempHowLahaCanHelpDataStructured.push({
+        title: data?.card_label,
+        description: data?.card_description,
+        image_url: data?.card_icon,
+      })
+    }
+    return tempHowLahaCanHelpDataStructured
+  }
+
+  // Structure "Explore Special Topics" data
+  const curateExploreSpecialData = (nodeData: any) => {
+    let exploreSpecialData = (nodeData as any)?.special_topics_data ?? []
+    let tempExploreSpecialDataStructured = []
+    for (let data of exploreSpecialData) {
+      tempExploreSpecialDataStructured.push({
+        title: data?.title,
+        description: data?.description,
+        image_uri: data?.background_image,
+        url: data?.cta?.link,
+        text: data?.cta?.link_text,
+      })
+    }
+    return tempExploreSpecialDataStructured
+  }
+
+  // Structure "Stories of Strength" data
+  const curateStoriesOfStrengthData = (layoutNodes: any) => {
+    let storiesOfStrengthData = (layoutNodes as any)?.stories_block?.[0] ?? []
+    let storiesTitleDesc = {
+      title: layoutNodes?.stories_block?.[0]?.title,
+      description: layoutNodes?.stories_block?.[0]?.description,
+    }
+    let tempStoriesOfStrengthDataStructured = []
+    for (let data of storiesOfStrengthData.stories ?? []) {
+      tempStoriesOfStrengthDataStructured.push({
+        description: String(data.stories_description),
+        by: String(data.stories_label),
+        icon: String(data?.stories_icon),
+      })
+    }
+
+    return {
+      ...storiesTitleDesc,
+      tempStoriesOfStrengthDataStructured,
+    }
+  }
+
+  useEffect(() => {
+    clearLocaleCaches()
+    handleContentMadeForYou()
+    handleFetchData()
+  }, [locale])
 
   return (
     <>
-      {orderOfNodes.map((node, index) => {
-        let Comp =
-          homepageBlockComponentMapping[
-            node as keyof typeof homepageBlockComponentMapping
-          ]?.component
+      {homepageBannerData && (
+        <HomePageBannerSlider
+          loading={isBannerLoading}
+          homepageBannerData={homepageBannerData}
+        />
+      )}
+      {findServicesData && (
+        <FindServices
+          loading={isFindServicesLoading}
+          findServicesData={findServicesData}
+        />
+      )}
 
-        if (Comp) {
-          return (
-            <Comp
-              key={index}
-              {...homepageBlockComponentMapping[
-                node as keyof typeof homepageBlockComponentMapping
-              ].props}
-            />
-          )
-        }
-        return (
-          <div key={index} className="bg-pink-400">
-            {node}
-          </div>
-        )
-      })}
-
-      <ContentMadeForYou
-        contentMadeForYouTitle={contentMadeForYouTitle}
-        contentMadeForYouData={contentMadeForYouData}
-      />
-
-      <HomepageLearningPathSlider />
+      <HomepageSearch />
+      {contenForYou.data.length > 0 && (
+        <ContentMadeForYou
+          contentMadeForYouTitle={contenForYou.title}
+          contentMadeForYouData={contenForYou.data}
+          loading={isContentMadeForYouLoading}
+        />
+      )}
+      {
+        <HomepageLearningPathSlider
+          data={learningData}
+          title={learningTitle}
+          loading={isContentMadeForYouLoading}
+        />
+      }
+      {exploreSpecialDataStructured && (
+        <ExploreSpecialTopics
+          loading={isExploreSpecialLoading}
+          exploreSpecialDataStructured={exploreSpecialDataStructured}
+        />
+      )}
+      {howLahaCanHelpDataStructured && (
+        <HowLaahaCanHelpYou
+          howLahaCanHelpDataStructured={howLahaCanHelpDataStructured}
+          loading={isHowLaahaCanHelpLoading}
+        />
+      )}
+      {storiesOfStrengthDataStructured.tempStoriesOfStrengthDataStructured && (
+        <StoriesOfStrength
+          title={storiesOfStrengthDataStructured.title}
+          desc={storiesOfStrengthDataStructured.description}
+          stories={
+            storiesOfStrengthDataStructured.tempStoriesOfStrengthDataStructured
+          }
+          loading={isStoriesOfStrengthLoading}
+        />
+      )}
     </>
   )
 }

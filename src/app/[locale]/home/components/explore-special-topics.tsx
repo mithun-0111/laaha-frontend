@@ -1,41 +1,146 @@
-import HomepageSpecialTopicsSlider from "@/src/components/Slider/HomepageSpecialTopicsSlider"
-import { laila } from "@/src/lib/utils";
-import { ExploreSpecialCards } from "@/src/components/Cards/ExploreSpecialCards";
-
+import { laila } from "@/src/lib/utils"
+import { ExploreSpecialCards } from "@/src/components/Cards/ExploreSpecialCards"
+import { translations } from "@/src/lib/translations"
+import useWindowSize from "@/src/lib/useWindowSize"
+import Slider from "react-slick"
+import { useRef, useState } from "react"
+import { rtlLocales } from "@/site.config"
+import { useLocale } from "next-intl"
+import { NextIcon, PrevIcon } from "@/src/lib/icons"
+import { useTranslations } from "@/src/contexts/TranslationsContext"
+import { SpecialTopicsShimmer } from "@/src/components/Shimmer"
+import './special-topics.scss';
 
 interface ExploreSpecialProps {
-  title: string;
-  description: string;
-  image_uri: string;
+  title: string
+  description: string
+  image_uri: string
+  url: string
+  text: string
 }
 
-
-export default function ExploreSpecialTopics({ exploreSpecialDataStructured }: { exploreSpecialDataStructured: ExploreSpecialProps[] }) {
+function NextArrow(props: {
+  className?: string
+  style?: React.CSSProperties
+  onClick: () => void
+}) {
+  const { className, style, onClick } = props
   return (
-    <div className='explore-special flex flex-col gap-10 px-28 mb-20'>
-        <h1 className={`${laila.className} font-semibold text-2xl`}>
-          Explore special topics
-        </h1>
+    <div
+      className={`${className}  p-2 w-11 h-11 cursor-pointer`}
+      style={{ ...style }}
+      onClick={onClick}
+    >
+      <NextIcon />
+    </div>
+  )
+}
 
-        <div className={`gap-10 hidden md:flex`}>
-          {
-            exploreSpecialDataStructured?.map((data: ExploreSpecialProps, index: number) => {
-              return <ExploreSpecialCards
-                key={index}
-                className='bg-yellow-200'
-                title={data.title}
-                description={data.description}
-                // image={data.image_uri}
-                image={'https://laaha.org/sites/default/files/styles/scale_344w/public/2024-07/m_26%20illustration_01.png?itok=fu1U3r61'}
-              />
-            })
-          }
+function PrevArrow(props: {
+  className?: string
+  style?: React.CSSProperties
+  onClick: () => void
+}) {
+  const { className, style, onClick } = props
+  return (
+    <div
+      className={`${className}  p-2 w-11 h-11 cursor-pointer`}
+      style={{ ...style }}
+      onClick={onClick}
+    >
+      <PrevIcon />
+    </div>
+  )
+}
+
+export default function ExploreSpecialTopics({
+  exploreSpecialDataStructured,
+  loading
+}: {
+  exploreSpecialDataStructured: ExploreSpecialProps[],
+  loading: boolean
+}) {
+  const { width } = useWindowSize()
+  const sliderRef = useRef<Slider>(null)
+  const next = () => {
+    sliderRef.current?.slickNext()
+  }
+  const previous = () => {
+    sliderRef.current?.slickPrev()
+  }
+  const locale = useLocale()
+  const { translations } = useTranslations()
+  let [rtlLang, setRtlLang] = useState(rtlLocales.includes(locale as string))
+
+  const settings = {
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    nextArrow: <div></div>,
+    prevArrow: <div></div>,
+    rtl: rtlLocales.includes(locale) ? true : false,
+  }
+
+  if(loading) {
+    return <SpecialTopicsShimmer />
+  }
+
+  return (
+    <div className="container explore-special flex flex-col gap-10 mb-20">
+      <h1 className={`${laila.className} font-semibold text-2xl`}>
+        {translations?.[locale]?.explore_special_topics_title}
+      </h1>
+      {width > 767 ? (
+        <div className={`gap-10 flex`}>
+          {exploreSpecialDataStructured?.map(
+            (data: ExploreSpecialProps, index: number) => {
+              return (
+                <ExploreSpecialCards
+                  key={index}
+                  title={data.title}
+                  description={data.description}
+                  image={data.image_uri}
+                  url={data.url}
+                  text={data.text}
+                />
+              )
+            }
+          )}
         </div>
-
-        <div className={`gap md:hidden`}>
-          <HomepageSpecialTopicsSlider />
-        </div>
-
-      </div>
+      ) : (
+        <>
+          <Slider ref={sliderRef} {...settings}>
+            {exploreSpecialDataStructured?.map(
+              (data: ExploreSpecialProps, index: number) => {
+                return (
+                  <ExploreSpecialCards
+                    key={index}
+                    title={data.title}
+                    description={data.description}
+                    image={data.image_uri}
+                    url={data.url}
+                    text={data.text}
+                  />
+                )
+              }
+            )}
+          </Slider>
+          <div
+            className={`w-full gap-3 flex ${rtlLang ? "flex-row justify-end" : "flex-row justify-end"}`}
+          >
+            <PrevArrow
+              className="prev-arrow bg-primary flex justify-center items-center rounded-full"
+              onClick={previous}
+            />
+            <NextArrow
+              className="next-arrow bg-primary flex justify-center items-center rounded-full"
+              onClick={next}
+            />
+          </div>
+        </>
+      )}
+    </div>
   )
 }

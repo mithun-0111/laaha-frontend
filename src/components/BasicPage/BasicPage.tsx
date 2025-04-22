@@ -1,9 +1,11 @@
-import Paragraph from "../Paragraph/Paragraph";
+import { Breadcrumbs } from "../Breadcrumb"
+import DetailPageParagraph from "../Paragraph/DetailPageParagraph"
 
-const BasicPage = ({data}:any) => {
+const BasicPage = ({ data }: any) => {
   return (
     <div className="video-page">
-      <Paragraph data={data} />
+      <Breadcrumbs items={[{title: data?.title?.[0]?.value}]} />
+      <DetailPageParagraph data={data} />
     </div>
   )
 }
